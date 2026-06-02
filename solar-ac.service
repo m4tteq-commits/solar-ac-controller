@@ -1,23 +1,28 @@
-# Solar AC Controller - Serviciu Systemd
-# Copiază în: /etc/systemd/system/solar-ac.service
-# Activează cu:
-#   sudo cp solar-ac.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now solar-ac.service
-# Vezi loguri: sudo journalctl -u solar-ac.service -f
-
 [Unit]
-Description=Solar AC Controller - Automatizare AC pe baza energiei solare
+Description=Solar AC Controller - Automatizare AC bazată sursă solară
+Documentation=https://github.com/m4tteq-commits/solar-ac-controller
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=anne
+Group=anne
 WorkingDirectory=/home/anne/solar-ac-controller
 ExecStart=/home/anne/solar-ac-controller/venv/bin/python main.py
 Restart=always
-RestartSec=10
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=solar-ac
+
+# Securitate
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/anne/solar-ac-controller/logs
+PrivateTmp=true
+
+# Variabile de mediu
 Environment=PYTHONUNBUFFERED=1
 
 [Install]

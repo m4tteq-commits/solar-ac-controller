@@ -1,25 +1,20 @@
-"""Client Midea AC - control local prin rețea WiFi."""
+"""Client Midea AC - control local prin rețea WiFi.
+
+Folosește biblioteca msmart-ng (midea-local) pentru control local.
+"""
 import logging
 import socket
-import struct
-import json
+from datetime import datetime
 
 from config import settings
 
 logger = logging.getLogger('midea')
 
 
-class MideaClient:
+class MideaController:
     """Comunicare locală cu AC-ul Midea prin protocolul midea-lan."""
 
     MIDEA_PORT = 6444
-
-    # Comenzi Midea (protocol simplificat)
-    CMD_GET_STATUS = 0x01
-    CMD_SET_POWER = 0x02
-    CMD_SET_TEMP = 0x03
-    CMD_SET_MODE = 0x04
-    CMD_SET_FAN = 0x05
 
     # Moduri
     MODES = {
@@ -35,19 +30,20 @@ class MideaClient:
         self.local_key = settings.MIDEA_LOCAL_KEY
         self.device_ip = settings.MIDEA_IP
         self._use_library = False
+        self._device_info = None
 
-        # Încearcă să folosești biblioteca midea-local (mai robustă)
+        # Încearcă să folosești biblioteca msmart-ng (mai robustă)
         try:
-            from midea.device import AirConditioningDevice
-            from midea.discover import discover
+            from msmart.device import AirConditioningDevice
+            from msmart.discover import discover
             self._use_library = True
             self._lib_discover = discover
             self._lib_device_class = AirConditioningDevice
-            logger.info("Biblioteca midea-local disponibilă")
+            logger.info("Biblioteca msmart-ng disponibilă")
         except ImportError:
             logger.warning(
-                "Biblioteca midea-local nu e instalată. "
-                "Instalează cu: pip install midea-local"
+                "Biblioteca msmart-ng nu e instalată. "
+                "Instalează cu: pip install msmart-ng"
             )
 
     def _discover_device(self):
@@ -58,41 +54,21 @@ class MideaClient:
         try:
             devices = self._lib_discover()
             for dev in devices:
-                if str(dev.id) == self.device_id or self.device_ip == dev.ip:
+                if str(dev.id) == self.device_id or (self.device_ip and self.device_ip == dev.ip):
+                    self._device_info = dev
                     return dev
             return None
         except Exception as e:
             logger.error(f"Eroare descoperire Midea: {e}")
             return None
 
-    def _send_command_lib(self, device, command_type, value):
-        """Trimite comandă folosind biblioteca midea-local."""
-        try:
-            device = self._lib_device_class(
-                device_ip=device.ip,
-                device_id=int(device.id),
-                device_type=settings.MIDEA_DEVICE_TYPE,
-            )
-            device.refresh()
-
-            if command_type == 'power':
-                device.power_state = value
-            elif command_type == 'mode':
-                device.mode = self.MODES.get(value, 0x01)
-            elif command_type == 'temp':
-                device.target_temperature = value
-            elif command_type == 'fan':
-                device.fan_speed = value
-
-            device.apply()
-            return True
-        except Exception as e:
-            logger.error(f"Eroare comandă Midea: {e}")
-            return False
-
     def get_state(self):
-        """Citește starea actuală a AC-ului."""
-        # Varianta cu biblioteca midea-local
+        """Citește starea actuală a AC-ului.
+
+        Returns:
+            dict cu: is_on, indoor_temp, outdoor_temp, target_temp, mode, fan_speed
+            sau None dacă nu se poate citi.
+        """
         if self._use_library:
             try:
                 device_info = self._discover_device()
@@ -114,36 +90,44 @@ class MideaClient:
                     'target_temp': dev.target_temperature,
                     'mode': dev.mode_name if hasattr(dev, 'mode_name') else 'unknown',
                     'fan_speed': dev.fan_speed if hasattr(dev, 'fan_speed') else 'unknown',
+                    'timestamp': datetime.now().isoformat(),
                 }
             except Exception as e:
                 logger.error(f"Eroare citire stare Midea: {e}")
                 return None
 
-        # Fallback - protocol direct (simplificat)
-        try:
-            return {
-                'is_on': None,  # Nu se poate citi fără bibliotecă
-                'indoor_temp': None,
-                'outdoor_temp': None,
-                'target_temp': None,
-                'mode': None,
-                'fan_speed': None,
-            }
-        except Exception:
-            return None
+        # Fallback - nu se poate citi fără bibliotecă
+        logger.debug("Midea: bibliotecă indisponibilă, nu pot citi starea")
+        return None
 
-    def turn_on(self, temp=24.0, mode='cool', fan_speed='auto'):
-        """Pornește AC-ul."""
+    def turn_on(self, temp=None, mode='cool', fan_speed='auto'):
+        """Pornește AC-ul.
+
+        Args:
+            temp: Temperatura țintă (°C). Default din settings.
+            mode: Modul de funcționare ('cool', 'auto', 'dry', 'fan', 'heat').
+            fan_speed: Viteza ventilatorului ('auto', 'low', 'medium', 'high').
+        """
+        if temp is None:
+            temp = settings.TARGET_TEMP
+
         logger.info(f"Pornesc Midea AC: {temp}°C, mod {mode}, fan {fan_speed}")
 
         if self._use_library:
             try:
                 device_info = self._discover_device()
                 if device_info:
-                    self._send_command_lib(device_info, 'power', True)
-                    self._send_command_lib(device_info, 'mode', mode)
-                    self._send_command_lib(device_info, 'temp', temp)
-                    self._send_command_lib(device_info, 'fan', fan_speed)
+                    dev = self._lib_device_class(
+                        device_ip=device_info.ip,
+                        device_id=int(device_info.id),
+                        device_type=settings.MIDEA_DEVICE_TYPE,
+                    )
+                    dev.refresh()
+                    dev.power_state = True
+                    dev.mode = self.MODES.get(mode, 0x01)
+                    dev.target_temperature = temp
+                    dev.apply()
+                    logger.info("Midea AC pornit cu succes")
                     return True
             except Exception as e:
                 logger.error(f"Eroare pornire Midea: {e}")
@@ -159,7 +143,15 @@ class MideaClient:
             try:
                 device_info = self._discover_device()
                 if device_info:
-                    self._send_command_lib(device_info, 'power', False)
+                    dev = self._lib_device_class(
+                        device_ip=device_info.ip,
+                        device_id=int(device_info.id),
+                        device_type=settings.MIDEA_DEVICE_TYPE,
+                    )
+                    dev.refresh()
+                    dev.power_state = False
+                    dev.apply()
+                    logger.info("Midea AC oprit cu succes")
                     return True
             except Exception as e:
                 logger.error(f"Eroare oprire Midea: {e}")
@@ -173,7 +165,14 @@ class MideaClient:
             try:
                 device_info = self._discover_device()
                 if device_info:
-                    self._send_command_lib(device_info, 'temp', temp)
+                    dev = self._lib_device_class(
+                        device_ip=device_info.ip,
+                        device_id=int(device_info.id),
+                        device_type=settings.MIDEA_DEVICE_TYPE,
+                    )
+                    dev.refresh()
+                    dev.target_temperature = temp
+                    dev.apply()
                     return True
             except Exception as e:
                 logger.error(f"Eroare setare temperatură Midea: {e}")

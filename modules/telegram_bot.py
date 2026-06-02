@@ -129,16 +129,16 @@ class TelegramBot:
         await update.message.reply_text(text)
 
     async def _cmd_on(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """/on - Pornește AC manual."""
-        self.controller.last_status['manual_override'] = 'force_on'
+        """/on - Pornire manuală AC."""
+        self.controller.set_manual_override('force_on')
         await update.message.reply_text(
             "⚙️ AC setat MANUAL PORNIT.\n"
             "Automatizarea e suspendată până la /auto sau /off."
         )
 
     async def _cmd_off(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """/off - Oprește AC manual."""
-        self.controller.last_status['manual_override'] = 'force_off'
+        """/off - Oprire manuală AC."""
+        self.controller.set_manual_override('force_off')
         await update.message.reply_text(
             "⚙️ AC setat MANUAL OPRIT.\n"
             "Automatizarea e suspendată până la /auto."
@@ -146,7 +146,7 @@ class TelegramBot:
 
     async def _cmd_auto(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """/auto - Revine la mod automat."""
-        self.controller.last_status['manual_override'] = None
+        self.controller.set_manual_override(None)
         await update.message.reply_text(
             "✅ Mod AUTOMAT activat.\n"
             "AC-ul va porni/opri automat în funcție de surplusul solar."
@@ -171,21 +171,16 @@ class TelegramBot:
             try:
                 if args[0] == 'surplus':
                     val = float(args[1])
-                    settings.SURPLUS_THRESHOLD_KW = val
-                    self.controller.last_status['surplus_threshold'] = val
+                    self.controller.update_settings(surplus_threshold=val)
                     text = f"✅ Prag surplus setat la {val} kW"
                 elif args[0] == 'temp':
                     val = float(args[1])
-                    settings.TEMP_THRESHOLD = val
-                    self.controller.last_status['temp_threshold'] = val
+                    self.controller.update_settings(temp_threshold=val)
                     text = f"✅ Prag temperatură setat la {val}°C"
                 elif args[0] == 'ore':
                     start = int(args[1])
                     end = int(args[2]) if len(args) > 2 else 22
-                    settings.ALLOWED_HOURS_START = start
-                    settings.ALLOWED_HOURS_END = end
-                    self.controller.last_status['hours_start'] = start
-                    self.controller.last_status['hours_end'] = end
+                    self.controller.update_settings(hours_start=start, hours_end=end)
                     text = f"✅ Program setat: {start}:00 - {end}:00"
                 else:
                     text = "⚠️ Parametru necunoscut. Vezi /set gol."
@@ -208,7 +203,7 @@ class TelegramBot:
             "/on - Pornire AC manual\n"
             "/off - Oprire AC manual\n"
             "/auto - Mod automat\n\n"
-            "⚙️ Setări:Setări:\n"
+            "⚙️ Setări:\n"
             "/set surplus 1.5 - prag surplus (kW)\n"
             "/set temp 25 - prag temperatura (°C)\n"
             "/set ore 9 21 - interval orar\n\n"

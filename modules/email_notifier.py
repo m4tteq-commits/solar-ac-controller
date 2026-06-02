@@ -1,6 +1,7 @@
 """Notificări prin Email (Gmail SMTP)."""
 import logging
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -30,11 +31,8 @@ class EmailNotifier:
             logger.debug("Notificările email sunt dezactivate")
             if subject != "test":
                 return True
-            # Permite test chiar dacă e dezactivat
-            pass
 
         # Anti-spam: nu trimite același subiect prea des
-        import time
         now = time.time()
         if subject == self._last_subject and (now - self._last_sent_time) < self._min_interval:
             logger.debug(f"Email '{subject}' ignorat (anti-spam, {int(now - self._last_sent_time)}s)")

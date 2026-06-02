@@ -1,4 +1,4 @@
-"""Web UI - Dashboard în limba română."""
+"""Web UI - Dashboard în limba română cu Tailwind CSS."""
 import logging
 import json
 from datetime import datetime
@@ -23,178 +23,172 @@ DASHBOARD_HTML = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar AC Controller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f172a; color: #e2e8f0; min-height: 100vh;
+        body { background: #0f172a; }
+        .card { background: #1e293b; border-color: #334155; }
+        .glow-green { box-shadow: 0 0 20px rgba(34, 197, 94, 0.15); }
+        .glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.15); }
+        @keyframes pulse-sun {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
-        .header {
-            background: linear-gradient(135deg, #1e3a5f, #0f172a);
-            padding: 20px; text-align: center;
-            border-bottom: 2px solid #f59e0b;
-        }
-        .header h1 { color: #f59e0b; font-size: 1.8em; }
-        .header p { color: #94a3b8; margin-top: 5px; }
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
-        .card {
-            background: #1e293b; border-radius: 12px; padding: 20px;
-            border: 1px solid #334155; text-align: center;
-        }
-        .card .label { color: #94a3b8; font-size: 0.85em; margin-bottom: 8px; }
-        .card .value { font-size: 1.8em; font-weight: bold; }
-        .card .unit { color: #64748b; font-size: 0.75em; }
-        .solar { color: #f59e0b; }
-        .consum { color: #f97316; }
-        .surplus-pos { color: #22c55e; }
-        .surplus-neg { color: #ef4444; }
-        .temp { color: #38bdf8; }
-        .battery { color: #a78bfa; }
-        .ac-on { color: #22c55e; }
-        .ac-off { color: #ef4444; }
-        .status-bar {
-            background: #1e293b; border-radius: 12px; padding: 15px 20px;
-            margin: 15px 0; border: 1px solid #334155;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .status-text { font-size: 0.9em; color: #94a3b8; }
-        .status-text strong { color: #e2e8f0; }
-        .btn {
-            display: inline-block; padding: 10px 20px; border-radius: 8px;
-            border: none; cursor: pointer; font-size: 0.9em; font-weight: 600;
-            margin: 5px; transition: all 0.2s;
-        }
-        .btn-on { background: #22c55e; color: #000; }
-        .btn-off { background: #ef4444; color: #fff; }
-        .btn-auto { background: #3b82f6; color: #fff; }
-        .btn:hover { transform: scale(1.05); opacity: 0.9; }
-        .settings {
-            background: #1e293b; border-radius: 12px; padding: 20px;
-            margin: 15px 0; border: 1px solid #334155;
-        }
-        .settings h3 { color: #f59e0b; margin-bottom: 15px; }
-        .settings label { display: block; margin: 10px 0 5px; color: #94a3b8; font-size: 0.85em; }
-        .settings input {
-            width: 100%; padding: 8px 12px; border-radius: 6px;
-            border: 1px solid #334155; background: #0f172a; color: #e2e8f0;
-        }
-        .settings .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-save { background: #f59e0b; color: #000; margin-top: 15px; }
-        .log {
-            background: #0f172a; border-radius: 12px; padding: 15px;
-            margin: 15px 0; border: 1px solid #334155;
-            max-height: 200px; overflow-y: auto; font-family: monospace;
-            font-size: 0.8em; color: #64748b;
-        }
-        .log-entry { padding: 2px 0; border-bottom: 1px solid #1e293b; }
-        .log-entry.info { color: #94a3b8; }
-        .log-entry.warn { color: #f59e0b; }
-        .log-entry.error { color: #ef4444; }
-        .update-time { text-align: center; color: #64748b; font-size: 0.8em; margin-top: 10px; }
-        @media (max-width: 600px) {
-            .grid { grid-template-columns: 1fr 1fr; }
-            .settings .row { grid-template-columns: 1fr; }
-        }
+        .animate-sun { animation: pulse-sun 3s ease-in-out infinite; }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h1>☀️ Solar AC Controller</h1>
-        <p>Automatizare aer condiționat bazată pe energie solară</p>
-    </div>
-
-    <div class="container">
-        <!-- Stare AC -->
-        <div class="status-bar">
+<body class="text-slate-200 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 border-b-2 border-amber-500 px-6 py-4">
+        <div class="max-w-5xl mx-auto flex items-center justify-between">
             <div>
-                <span style="font-size: 1.2em;" id="ac-status">❄️ AC: ---</span>
+                <h1 class="text-2xl font-bold text-amber-500">
+                    <i class="fas fa-sun animate-sun mr-2"></i>Solar AC Controller
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Automatizare aer condiționat bazată pe energie solară</p>
             </div>
-            <div>
-                <button class="btn btn-on" onclick="manualOn()">Pornește</button>
-                <button class="btn btn-off" onclick="manualOff()">Oprește</button>
-                <button class="btn btn-auto" onclick="manualAuto()">Auto</button>
+            <div class="text-right">
+                <div id="connection-status" class="text-xs text-slate-500">
+                    <i class="fas fa-circle text-green-500 mr-1"></i>Conectat
+                </div>
+                <div id="update-time" class="text-xs text-slate-500 mt-1">Ultima actualizare: ---</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-4 sm:p-6">
+        <!-- Stare AC + Control Manual -->
+        <div class="card rounded-xl border p-4 mb-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span id="ac-icon" class="text-3xl">❄️</span>
+                    <div>
+                        <div id="ac-status" class="text-xl font-bold">AC: ---</div>
+                        <div id="ac-mode" class="text-sm text-slate-400">---</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="manualOn()" class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-semibold transition">
+                        <i class="fas fa-power-off mr-1"></i>Pornește
+                    </button>
+                    <button onclick="manualOff()" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition">
+                        <i class="fas fa-power-off mr-1"></i>Oprește
+                    </button>
+                    <button onclick="manualAuto()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition">
+                        <i class="fas fa-robot mr-1"></i>Auto
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Metrici -->
-        <div class="grid">
-            <div class="card">
-                <div class="label">☀️ Producție solară</div>
-                <div class="value solar" id="solar">---</div>
-                <div class="unit">kW</div>
+        <!-- Metrici principale -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Producție solară -->
+            <div class="card rounded-xl border p-4 text-center">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-sun text-amber-500 mr-1"></i>Producție solară</div>
+                <div id="solar" class="text-2xl font-bold text-amber-500">---</div>
+                <div class="text-slate-500 text-xs">kW</div>
             </div>
-            <div class="card">
-                <div class="label">🏠 Consum casă</div>
-                <div class="value consum" id="consum">---</div>
-                <div class="unit">kW</div>
+            <!-- Consum casă -->
+            <div class="card rounded-xl border p-4 text-center">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-home text-orange-500 mr-1"></i>Consum casă</div>
+                <div id="consum" class="text-2xl font-bold text-orange-500">---</div>
+                <div class="text-slate-500 text-xs">kW</div>
             </div>
-            <div class="card">
-                <div class="label">📊 Surplus</div>
-                <div class="value" id="surplus">---</div>
-                <div class="unit">kW</div>
+            <!-- Surplus -->
+            <div class="card rounded-xl border p-4 text-center">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-chart-line text-green-500 mr-1"></i>Surplus</div>
+                <div id="surplus" class="text-2xl font-bold">---</div>
+                <div class="text-slate-500 text-xs">kW</div>
             </div>
-            <div class="card">
-                <div class="label">🔋 Baterie</div>
-                <div class="value battery" id="battery">---</div>
-                <div class="unit">%</div>
+            <!-- Baterie -->
+            <div class="card rounded-xl border p-4 text-center">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-battery-three-quarters text-purple-500 mr-1"></i>Baterie</div>
+                <div id="battery" class="text-2xl font-bold text-purple-500">---</div>
+                <div class="text-slate-500 text-xs">%</div>
             </div>
-            <div class="card">
-                <div class="label">🌡️ T° interior</div>
-                <div class="value temp" id="temp-in">---</div>
-                <div class="unit">°C</div>
+            <!-- T° interior -->
+            <div class="card rounded-xl border p-4 text-center">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-thermometer-half text-sky-500 mr-1"></i>T° interior</div>
+                <div id="temp-in" class="text-2xl font-bold text-sky-500">---</div>
+                <div class="text-slate-500 text-xs">°C</div>
             </div>
-            <div class="card">
-                <div class="label">🌤° T° exterior</div>
-                <div class="value temp" id="temp-out">---</div>
-                <div class="unit">°C</div>
+            <!-- T° exterior -->
+            <div class="card rounded-xl border p-4 text-center">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-cloud-sun text-sky-400 mr-1"></i>T° exterior</div>
+                <div id="temp-out" class="text-2xl font-bold text-sky-400">---</div>
+                <div class="text-slate-500 text-xs">°C</div>
+            </div>
+            <!-- Sursă date -->
+            <div class="card rounded-xl border p-4 text-center">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-wifi text-emerald-500 mr-1"></i>Sursă</div>
+                <div id="source" class="text-lg font-bold text-emerald-500">---</div>
+                <div class="text-slate-500 text-xs">invertor</div>
+            </div>
+            <!-- Surplus vizual (bar) -->
+            <div class="card rounded-xl border p-4 text-center col-span-2 sm:col-span-1">
+                <div class="text-slate-400 text-xs mb-2"><i class="fas fa-gauge-high text-amber-400 mr-1"></i>Surplus vs Prag</div>
+                <div class="w-full bg-slate-700 rounded-full h-4 mt-2">
+                    <div id="surplus-bar" class="bg-green-500 h-4 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+                <div id="surplus-text" class="text-xs text-slate-400 mt-1">---</div>
             </div>
         </div>
 
         <!-- Ultima decizie -->
-        <div class="status-bar">
-            <div class="status-text">
-                📋 <strong>Ultima decizie:</strong> <span id="last-decision">---</span>
+        <div class="card rounded-xl border p-4 mb-6">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-clipboard-check text-amber-500 mt-1"></i>
+                <div>
+                    <div class="text-sm text-slate-400">Ultima decizie</div>
+                    <div id="last-decision" class="font-semibold">---</div>
+                    <div id="last-reason" class="text-sm text-slate-400 mt-1">---</div>
+                </div>
             </div>
-            <div class="status-text" id="last-reason">---</div>
         </div>
 
         <!-- Setări -->
-        <div class="settings">
-            <h3>⚙️ Setări</h3>
-            <div class="row">
+        <div class="card rounded-xl border p-5 mb-6">
+            <h3 class="text-amber-500 font-bold text-lg mb-4">
+                <i class="fas fa-cog mr-2"></i>Setări Control
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label>Prag surplus (kW)</label>
-                    <input type="number" id="set-surplus" step="0.1" value="1.4">
+                    <label class="text-slate-400 text-sm block mb-1">Prag Surplus Pornire (kW)</label>
+                    <input type="number" id="set-surplus" step="0.1" value="1.4"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-200 focus:border-amber-500 focus:outline-none">
                 </div>
                 <div>
-                    <label>Prag temperatură (°C)</label>
-                    <input type="number" id="set-temp" step="0.5" value="24">
+                    <label class="text-slate-400 text-sm block mb-1">Temperatură Interioară Minimă (°C)</label>
+                    <input type="number" id="set-temp" step="0.5" value="24"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-200 focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-slate-400 text-sm block mb-1">Ora Pornire</label>
+                    <input type="number" id="set-start" min="0" max="23" value="9"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-200 focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="text-slate-400 text-sm block mb-1">Ora Oprire</label>
+                    <input type="number" id="set-end" min="0" max="23" value="18"
+                        class="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-200 focus:border-amber-500 focus:outline-none">
                 </div>
             </div>
-            <div class="row">
-                <div>
-                    <label>Ora pornire</label>
-                    <input type="number" id="set-start" min="0" max="23" value="8">
-                </div>
-                <div>
-                    <label>Ora oprire</label>
-                    <input type="number" id="set-end" min="0" max="23" value="22">
-                </div>
-            </div>
-            <button class="btn btn-save" onclick="saveSettings()">💎 Salvează setările</button>
+            <button onclick="saveSettings()" class="mt-4 px-6 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg font-bold transition">
+                <i class="fas fa-save mr-2"></i>Salvează Setările
+            </button>
         </div>
 
-        <!-- Log -->
-        <div class="settings">
-            <h3>📜 Jurnal</h3>
-            <div class="log" id="log-container">
-                <div class="log-entry info">Se încarcă...</div>
+        <!-- Jurnal -->
+        <div class="card rounded-xl border p-5">
+            <h3 class="text-amber-500 font-bold text-lg mb-4">
+                <i class="fas fa-scroll mr-2"></i>Jurnal Activitate
+            </h3>
+            <div id="log-container" class="bg-slate-900 rounded-lg p-3 max-h-48 overflow-y-auto font-mono text-xs text-slate-400">
+                <div class="py-1">Se încarcă...</div>
             </div>
         </div>
-
-        <div class="update-time" id="update-time">Ultima actualizare: ---</div>
-    </div>
+    </main>
 
     <script>
         let autoRefresh;
@@ -205,50 +199,89 @@ DASHBOARD_HTML = """
                 .then(data => {
                     // AC status
                     const acEl = document.getElementById('ac-status');
+                    const acIcon = document.getElementById('ac-icon');
+                    const acMode = document.getElementById('ac-mode');
                     if (data.ac_on === true) {
-                        acEl.innerHTML = '❄️ AC: <span class="ac-on">🟢 PORNIT</span>';
+                        acEl.innerHTML = 'AC: <span class="text-green-500">🟢 PORNIT</span>';
+                        acEl.className = 'text-xl font-bold glow-green';
+                        acIcon.textContent = '❄️';
+                        acMode.textContent = `Mod: ${data.ac_mode || '---'} | Fan: ${data.ac_fan || '---'} | Țintă: ${data.target_temp || '---'}°C`;
                     } else if (data.ac_on === false) {
-                        acEl.innerHTML = '❄️ AC: <span class="ac-off">🔴 OPRIT</span>';
+                        acEl.innerHTML = 'AC: <span class="text-red-500">🔴 OPRIT</span>';
+                        acEl.className = 'text-xl font-bold glow-red';
+                        acIcon.textContent = '💤';
+                        acMode.textContent = '';
                     } else {
-                        acEl.innerHTML = '❄️ AC: ⚠️ Necunoscut';
+                        acEl.innerHTML = 'AC: <span class="text-yellow-500">⚠️ Necunoscut</span>';
+                        acEl.className = 'text-xl font-bold';
+                        acIcon.textContent = '❓';
+                        acMode.textContent = '';
                     }
 
                     // Metrici
                     document.getElementById('solar').textContent =
-                        data.solar_production_kw !== null ? data.solar_production_kw.toFixed(2) : '---';
+                        data.solar_production_kw != null ? data.solar_production_kw.toFixed(2) : '---';
                     document.getElementById('consum').textContent =
-                        data.consumption_kw !== null ? data.consumption_kw.toFixed(2) : '---';
+                        data.consumption_kw != null ? data.consumption_kw.toFixed(2) : '---';
 
                     const surplusEl = document.getElementById('surplus');
-                    if (data.surplus_kw !== null) {
-                        surplusEl.textContent = (data.surplus_kw >= 0 ? '+' : '') + data.surplus_kw.toFixed(2);
-                        surplusEl.className = 'value ' + (data.surplus_kw >= 0 ? 'surplus-pos' : 'surplus-neg');
+                    const surplusBar = document.getElementById('surplus-bar');
+                    const surplusText = document.getElementById('surplus-text');
+                    if (data.surplus_kw != null) {
+                        const s = data.surplus_kw;
+                        surplusEl.textContent = (s >= 0 ? '+' : '') + s.toFixed(2);
+                        surplusEl.className = 'text-2xl font-bold ' + (s >= 0 ? 'text-green-500' : 'text-red-500');
+                        // Bar vizual: 0-3kW range
+                        const pct = Math.min(100, Math.max(0, (s / 3.0) * 100));
+                        surplusBar.style.width = pct + '%';
+                        surplusBar.className = 'h-4 rounded-full transition-all ' + (s >= 0 ? 'bg-green-500' : 'bg-red-500');
+                        const prag = data.surplus_threshold || 1.4;
+                        surplusText.textContent = `Prag: ${prag} kW`;
                     } else {
                         surplusEl.textContent = '---';
+                        surplusEl.className = 'text-2xl font-bold text-slate-500';
+                        surplusBar.style.width = '0%';
                     }
 
                     document.getElementById('battery').textContent =
-                        data.battery_soc !== null ? data.battery_soc.toFixed(0) : '---';
+                        data.battery_soc != null ? data.battery_soc.toFixed(0) : '---';
                     document.getElementById('temp-in').textContent =
-                        data.indoor_temp !== null ? data.indoor_temp.toFixed(1) : '---';
+                        data.indoor_temp != null ? data.indoor_temp.toFixed(1) : '---';
                     document.getElementById('temp-out').textContent =
-                        data.outdoor_temp !== null ? data.outdoor_temp.toFixed(1) : '---';
+                        data.outdoor_temp != null ? data.outdoor_temp.toFixed(1) : '---';
+
+                    // Sursă
+                    const srcMap = { 'modbus': '🟢 Modbus', 'cloud': '☁️ Cloud', 'local': '📡 Local' };
+                    document.getElementById('source').textContent = srcMap[data.inverter_source] || data.inverter_source || '---';
 
                     // Decizie
-                    document.getElementById('last-decision').textContent = data.last_decision || '---';
+                    const decMap = { 'turn_on': '🟢 PORNIRE', 'turn_off': '🔴 OPRIRE', 'none': '⚪ NICIUNA' };
+                    document.getElementById('last-decision').textContent = decMap[data.last_decision] || data.last_decision || '---';
                     document.getElementById('last-reason').textContent = data.last_decision_reason || '';
 
                     // Setări
-                    document.getElementById('set-surplus').value = data.surplus_threshold || 1.4;
-                    document.getElementById('set-temp').value = data.temp_threshold || 24;
-                    document.getElementById('set-start').value = data.hours_start || 8;
-                    document.getElementById('set-end').value = data.hours_end || 22;
+                    if (data.surplus_threshold) document.getElementById('set-surplus').value = data.surplus_threshold;
+                    if (data.temp_threshold) document.getElementById('set-temp').value = data.temp_threshold;
+                    if (data.hours_start != null) document.getElementById('set-start').value = data.hours_start;
+                    if (data.hours_end != null) document.getElementById('set-end').value = data.hours_end;
 
                     // Timp
                     document.getElementById('update-time').textContent =
                         'Ultima actualizare: ' + new Date().toLocaleTimeString('ro-RO');
+
+                    // Connection status
+                    const connEl = document.getElementById('connection-status');
+                    if (data.last_update) {
+                        connEl.innerHTML = '<i class="fas fa-circle text-green-500 mr-1"></i>Conectat';
+                    } else {
+                        connEl.innerHTML = '<i class="fas fa-circle text-red-500 mr-1"></i>Deconectat';
+                    }
                 })
-                .catch(err => console.error('Eroare fetch:', err));
+                .catch(err => {
+                    console.error('Eroare fetch:', err);
+                    document.getElementById('connection-status').innerHTML =
+                        '<i class="fas fa-circle text-red-500 mr-1"></i>Eroare conexiune';
+                });
         }
 
         function fetchLog() {
@@ -258,7 +291,7 @@ DASHBOARD_HTML = """
                     const container = document.getElementById('log-container');
                     if (data.logs && data.logs.length > 0) {
                         container.innerHTML = data.logs.map(l =>
-                            '<div class="log-entry ' + l.level + '">' +
+                            '<div class="py-0.5 border-b border-slate-800 ' + l.level + '">' +
                             l.time + ' ' + l.message + '</div>'
                         ).join('');
                         container.scrollTop = container.scrollHeight;
@@ -292,7 +325,7 @@ DASHBOARD_HTML = """
         }
 
         function saveSettings() {
-            const settings = {
+            const s = {
                 surplus_threshold: parseFloat(document.getElementById('set-surplus').value),
                 temp_threshold: parseFloat(document.getElementById('set-temp').value),
                 hours_start: parseInt(document.getElementById('set-start').value),
@@ -301,7 +334,7 @@ DASHBOARD_HTML = """
             fetch('/api/settings', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(settings)
+                body: JSON.stringify(s)
             }).then(r => r.json()).then(data => {
                 alert(data.message || 'Setări salvate!');
                 fetchStatus();
@@ -346,29 +379,23 @@ class WebServer:
             data = request.get_json()
             action = data.get('action')
             if action == 'on':
-                self.controller.last_status['manual_override'] = 'force_on'
+                self.controller.set_manual_override('force_on')
             elif action == 'off':
-                self.controller.last_status['manual_override'] = 'force_off'
+                self.controller.set_manual_override('force_off')
             elif action == 'auto':
-                self.controller.last_status['manual_override'] = None
+                self.controller.set_manual_override(None)
             return jsonify({'ok': True, 'action': action})
 
         @self.app.route('/api/settings', methods=['POST'])
         def api_settings():
             data = request.get_json()
             try:
-                if 'surplus_threshold' in data:
-                    settings.SURPLUS_THRESHOLD_KW = float(data['surplus_threshold'])
-                    self.controller.last_status['surplus_threshold'] = settings.SURPLUS_THRESHOLD_KW
-                if 'temp_threshold' in data:
-                    settings.TEMP_THRESHOLD = float(data['temp_threshold'])
-                    self.controller.last_status['temp_threshold'] = settings.TEMP_THRESHOLD
-                if 'hours_start' in data:
-                    settings.ALLOWED_HOURS_START = int(data['hours_start'])
-                    self.controller.last_status['hours_start'] = settings.ALLOWED_HOURS_START
-                if 'hours_end' in data:
-                    settings.ALLOWED_HOURS_END = int(data['hours_end'])
-                    self.controller.last_status['hours_end'] = settings.ALLOWED_HOURS_END
+                self.controller.update_settings(
+                    surplus_threshold=data.get('surplus_threshold'),
+                    temp_threshold=data.get('temp_threshold'),
+                    hours_start=data.get('hours_start'),
+                    hours_end=data.get('hours_end'),
+                )
                 return jsonify({'ok': True, 'message': 'Setări salvate cu succes'})
             except (ValueError, TypeError) as e:
                 return jsonify({'ok': False, 'error': str(e)}), 400
@@ -383,11 +410,11 @@ class WebServer:
                     line = line.strip()
                     if not line:
                         continue
-                    level = 'info'
+                    level = 'text-slate-400'
                     if 'WARNING' in line or 'warn' in line.lower():
-                        level = 'warn'
+                        level = 'text-amber-500'
                     elif 'ERROR' in line or 'error' in line.lower():
-                        level = 'error'
+                        level = 'text-red-500'
                     parts = line.split(' ', 2)
                     time_str = parts[0] if parts else ''
                     msg = parts[-1] if len(parts) > 1 else line
